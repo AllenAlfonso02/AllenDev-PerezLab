@@ -1,11 +1,18 @@
 When you are handling cors on the aws lambda side, you could deactivate the CORS in the
 function config tab.
-aws s3 sync ./dist s3://perezlab.co
+
+git add --all .
+git commit -m ""
+npm run build
+git add --all .
+git commit -m ""
+git push origin master
+
+aws s3 sync ./dist s3://perezlab.co --delete
 
 If you want to delete files in S3 that no longer exist locally:
 
-aws s3 sync ./my-project s3://my-bucket-name --delete
 
-For a static site deployment, people often run:
-
-aws s3 sync ./dist s3://perezlab.co --delete
+aws cloudfront create-invalidation \
+  --distribution-id ETZ7PNGO0XIVD \
+  --paths "/*"

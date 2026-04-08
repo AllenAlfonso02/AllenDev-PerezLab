@@ -42,7 +42,9 @@ const internalModel = [
         items: [
             { label: 'Products', icon: 'pi pi-fw pi-box', to: '/app/Products', roles: ['staff', 'admin'] },
             { label: 'Ledger', icon: 'pi pi-fw pi-book', to: '/app/Ledger', roles: ['admin'] },
-            { label: 'Table', icon: 'pi pi-fw pi-table', to: '/app/uikit/table', roles: ['staff', 'admin'] }
+            { label: 'Table', icon: 'pi pi-fw pi-table', to: '/app/uikit/table', roles: ['staff', 'admin'] },
+            { label: 'Finished Product', icon: 'pi pi-fw pi-clipboard', to: '/app/uikit/finished-product', roles: ['staff', 'admin'] },
+            { label: 'Raw Materials', icon: 'pi pi-fw pi-chart-scatter', to: '/app/uikit/inventory', roles: ['staff', 'admin'] }
         ]
     },
 

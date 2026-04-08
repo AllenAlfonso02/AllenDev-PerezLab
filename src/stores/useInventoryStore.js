@@ -1,5 +1,5 @@
 // import storeReset from '@/composables/Reset/reset-store';
-import { createPinia, defineStore } from 'pinia';
+import { defineStore } from 'pinia';
 export const useInventoryStore = defineStore('inputdata', {
     //state
     state: () => ({
@@ -26,7 +26,7 @@ export const useInventoryStore = defineStore('inputdata', {
     // persist: true
 });
 
-const store = createPinia();
-// store.use(storeReset);
+// const store = createPinia();
+// // store.use(storeReset);
 
-export default store;
+// export default store;

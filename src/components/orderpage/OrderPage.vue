@@ -251,7 +251,7 @@ onBeforeMount(async () => {
 
 <template>
     <div>
-        <h1>Products</h1>
+        <h1></h1>
         <!-- Loading Spinner -->
         <!-- <transition name="fade">
             <div v-if="isFetching" class="absolute inset-0 bg-black/20 backdrop-blur-[1px] flex items-center justify-center rounded-lg">

@@ -28,12 +28,13 @@ const router = createRouter({
                 { path: 'dashboard', name: 'dashboard', meta: { label: 'Dashboard', roles: ['staff', 'admin'] }, component: () => import('@/views/Dashboard.vue') },
                 { path: 'Ledger', name: 'ledger', meta: { label: 'Ledger', roles: ['admin'] }, component: () => import('@/views/uikit/LedgerDoc.vue') },
                 { path: 'Products', name: 'products', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/DataInterfaceDoc.vue') },
-                // { path: 'uikit/formlayout', name: 'formlayout', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/FormLayout.vue') },
+                { path: 'uikit/inventory', name: 'inventory', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/InventoryPage.vue') },
                 { path: 'uikit/input', name: 'input', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/InputDoc.vue') },
                 { path: 'uikit/table', name: 'table', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/TableDoc.vue') },
                 { path: 'uikit/status-page', name: 'StatusPage', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/StatusPage.vue') },
                 { path: 'uikit/product-entry', name: 'product-entry', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/ProductEntryDoc.vue') },
-                { path: 'uikit/product-exit', name: 'product-exit', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/ProductExitDoc.vue') }
+                { path: 'uikit/product-exit', name: 'product-exit', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/ProductExitDoc.vue') },
+                { path: 'uikit/finished-product', name: 'finished-product', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/FinishedProductDoc.vue') }
             ]
         },
 

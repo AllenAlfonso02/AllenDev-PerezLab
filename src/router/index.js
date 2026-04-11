@@ -51,24 +51,49 @@ const router = createRouter({
 // Guard
 router.beforeEach((to) => {
     const auth = useAuthStore();
-    auth.restore();
 
-    if (to.matched.some((r) => r.meta?.public)) return true;
+    // 1. Allow public pages immediately
+    if (to.meta.public) return true;
 
-    const requiresAuth = to.matched.some((r) => r.meta?.requiresAuth);
-    if (!requiresAuth) return true;
-
+    // 2. Check Authentication
     if (!auth.isLoggedIn) {
         auth.setRedirectAfterLogin(to.fullPath);
         return { name: 'login' };
     }
 
-    const requiredRoles = to.meta?.roles ?? [];
+    // 3. Check "Internal" access (as defined in your store)
+    if (to.meta.internal && !auth.canAccessInternal) {
+        return { name: 'accessDenied' };
+    }
+
+    // 4. Check specific Roles
+    const requiredRoles = to.meta.roles || [];
     if (requiredRoles.length && !auth.hasAnyRole(requiredRoles)) {
         return { name: 'accessDenied' };
     }
 
     return true;
 });
+// router.beforeEach((to) => {
+//     const auth = useAuthStore();
+//     auth.restore();
+
+//     if (to.matched.some((r) => r.meta?.public)) return true;
+
+//     const requiresAuth = to.matched.some((r) => r.meta?.requiresAuth);
+//     if (!requiresAuth) return true;
+
+//     if (!auth.isLoggedIn) {
+//         auth.setRedirectAfterLogin(to.fullPath);
+//         return { name: 'login' };
+//     }
+
+//     const requiredRoles = to.meta?.roles ?? [];
+//     if (requiredRoles.length && !auth.hasAnyRole(requiredRoles)) {
+//         return { name: 'accessDenied' };
+//     }
+
+//     return true;
+// });
 
 export default router;

@@ -1,5 +1,6 @@
 import '@/assets/styles.scss';
 import '@/assets/tailwind.css';
+import { useAuthStore } from '@/stores/auth';
 import Aura from '@primeuix/themes/aura';
 import { createPinia } from 'pinia';
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
@@ -25,5 +26,7 @@ app.use(PrimeVue, {
 app.use(ToastService);
 app.use(pinia);
 app.use(ConfirmationService);
-
+// Restore auth state BEFORE the router is ready
+const auth = useAuthStore();
+auth.restore();
 app.mount('#app');

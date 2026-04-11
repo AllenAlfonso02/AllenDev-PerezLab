@@ -253,17 +253,17 @@ onBeforeMount(async () => {
     <div>
         <h1></h1>
         <!-- Loading Spinner -->
-        <!-- <transition name="fade">
-            <div v-if="isFetching" class="absolute inset-0 bg-black/20 backdrop-blur-[1px] flex items-center justify-center rounded-lg">
-                <ProgressSpinner style="width: 40px; height: 40px" strokeWidth="4" />
-            </div>
-        </transition> -->
+
         <transition name="fade">
-            <div v-if="isFetching" class="absolute inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center rounded-lg overflow-hidden" style="z-index: 50">
-                <video class="absolute inset-0 w-full h-full object-cover blur-md opacity-60" :src="loadingVideoSrc" autoplay muted loop playsinline preload="auto" />
-                <!-- Optional: darken + add text on top -->
-                <div class="absolute inset-0 bg-black/20"></div>
-                <div class="absolute text-white font-semibold">Loading products…</div>
+            <div v-if="isFetching" class="fixed inset-0 z-100 flex items-center justify-center overflow-hidden">
+                <video class="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none" :src="loadingVideoSrc" autoplay muted loop playsinline preload="auto" disablePictureInPicture />
+
+                <div class="absolute inset-0 bg-white/10 backdrop-blur-md border border-white/20"></div>
+
+                <div class="relative z-10 flex flex-col items-center gap-4">
+                    <ProgressSpinner style="width: 50px; height: 50px" strokeWidth="4" fill="transparent" animationDuration=".5s" />
+                    <div class="text-slate-800 font-black tracking-tighter text-xl drop-shadow-md animate-pulse">SYNCING INVENTORY...</div>
+                </div>
             </div>
         </transition>
         <div class="inner mx-auto max-w-5xl p-6 dark:bg-gray-800 rounded-2xl shadow-lg grid grid-cols-1 md:grid-cols-2 gap-6" style="margin-left: 100px; border-radius: 5px">

@@ -34,7 +34,8 @@ const router = createRouter({
                 { path: 'uikit/status-page', name: 'StatusPage', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/StatusPage.vue') },
                 { path: 'uikit/product-entry', name: 'product-entry', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/ProductEntryDoc.vue') },
                 { path: 'uikit/product-exit', name: 'product-exit', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/ProductExitDoc.vue') },
-                { path: 'uikit/finished-product', name: 'finished-product', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/FinishedProductDoc.vue') }
+                { path: 'uikit/finished-product', name: 'finished-product', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/FinishedProductDoc.vue') },
+                { path: 'uikit/batch-table', name: 'batch-table', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/BatchDoc.vue') }
             ]
         },
 
@@ -47,53 +48,28 @@ const router = createRouter({
         { path: '/:pathMatch(.*)*', redirect: '/pages/notfound' }
     ]
 });
-
-// Guard
 router.beforeEach((to) => {
     const auth = useAuthStore();
 
-    // 1. Allow public pages immediately
-    if (to.meta.public) return true;
+    auth.restore();
 
-    // 2. Check Authentication
+    if (to.matched.some((r) => r.meta?.public)) return true;
+
     if (!auth.isLoggedIn) {
         auth.setRedirectAfterLogin(to.fullPath);
         return { name: 'login' };
     }
 
-    // 3. Check "Internal" access (as defined in your store)
-    if (to.meta.internal && !auth.canAccessInternal) {
+    if (to.meta?.internal && !auth.canAccessInternal) {
         return { name: 'accessDenied' };
     }
 
-    // 4. Check specific Roles
-    const requiredRoles = to.meta.roles || [];
+    const requiredRoles = to.meta?.roles || [];
     if (requiredRoles.length && !auth.hasAnyRole(requiredRoles)) {
         return { name: 'accessDenied' };
     }
 
     return true;
 });
-// router.beforeEach((to) => {
-//     const auth = useAuthStore();
-//     auth.restore();
-
-//     if (to.matched.some((r) => r.meta?.public)) return true;
-
-//     const requiresAuth = to.matched.some((r) => r.meta?.requiresAuth);
-//     if (!requiresAuth) return true;
-
-//     if (!auth.isLoggedIn) {
-//         auth.setRedirectAfterLogin(to.fullPath);
-//         return { name: 'login' };
-//     }
-
-//     const requiredRoles = to.meta?.roles ?? [];
-//     if (requiredRoles.length && !auth.hasAnyRole(requiredRoles)) {
-//         return { name: 'accessDenied' };
-//     }
-
-//     return true;
-// });
 
 export default router;

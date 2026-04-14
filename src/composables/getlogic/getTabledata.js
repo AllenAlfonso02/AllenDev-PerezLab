@@ -39,8 +39,6 @@ export default function useTabledata() {
             finalData = newVal;
         }
 
-        // console.log('Pushing to Store:', finalData);
-
         // Update the Pinia store property that the component is watching
         // Assumes your store has an 'inputdata' ref/state
         tableStore.inputdatatable = finalData;

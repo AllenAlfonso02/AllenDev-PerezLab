@@ -1,94 +1,59 @@
-import { authService } from '@/services/authService';
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
 
-const STORAGE_KEY = 'myapp_auth_v1';
+export const useAuthStore = defineStore('auth', {
+    state: () => ({
+        user: null,
+        roles: [],
+        isLoggedIn: false,
+        canAccessInternal: false,
+        redirectAfterLogin: null
+    }),
 
-export const useAuthStore = defineStore('auth', () => {
-    const token = ref(null);
-    const user = ref(null); // { id, name, email, roles: [] }
-    const redirectAfterLogin = ref(null);
-    const bootstrapped = ref(false);
+    actions: {
+        setUser(user) {
+            this.user = user;
+            this.roles = user.roles || [];
+        },
 
-    const isLoggedIn = computed(() => !!token.value);
-    const roles = computed(() => user.value?.roles ?? []);
-    const canAccessInternal = computed(() => roles.value.length > 0);
+        hasAnyRole(requiredRoles) {
+            return this.roles.some((r) => requiredRoles.includes(r));
+        },
 
-    function persist() {
-        localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({
-                token: token.value,
-                user: user.value,
-                redirectAfterLogin: redirectAfterLogin.value
-            })
-        );
-    }
+        setRedirectAfterLogin(path) {
+            this.redirectAfterLogin = path;
+        },
 
-    function restore() {
-        if (bootstrapped.value) return;
-        bootstrapped.value = true;
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return;
-            const parsed = JSON.parse(raw);
-            token.value = parsed.token ?? null;
-            user.value = parsed.user ?? null;
-            redirectAfterLogin.value = parsed.redirectAfterLogin ?? null;
-        } catch {
-            localStorage.removeItem(STORAGE_KEY);
+        // ✅ Persist to localStorage
+        save() {
+            localStorage.setItem(
+                'auth',
+                JSON.stringify({
+                    user: this.user,
+                    roles: this.roles,
+                    isLoggedIn: this.isLoggedIn,
+                    canAccessInternal: this.canAccessInternal
+                })
+            );
+        },
+
+        // ✅ Restore on refresh
+        restore() {
+            const data = localStorage.getItem('auth');
+            if (!data) return;
+
+            const parsed = JSON.parse(data);
+            this.user = parsed.user;
+            this.roles = parsed.roles || [];
+            this.isLoggedIn = parsed.isLoggedIn;
+            this.canAccessInternal = parsed.canAccessInternal;
+        },
+
+        logout() {
+            this.user = null;
+            this.roles = [];
+            this.isLoggedIn = false;
+            this.canAccessInternal = false;
+            localStorage.removeItem('auth');
         }
     }
-
-    function setRedirectAfterLogin(path) {
-        redirectAfterLogin.value = path;
-        persist();
-    }
-
-    function clearRedirectAfterLogin() {
-        redirectAfterLogin.value = null;
-        persist();
-    }
-
-    async function login({ username, password }) {
-        const res = await authService.login(username, password);
-        token.value = res.token;
-        user.value = res.user;
-        persist();
-        return res.user;
-    }
-
-    async function logout() {
-        try {
-            await authService.logout();
-        } finally {
-            token.value = null;
-            user.value = null;
-            redirectAfterLogin.value = null;
-            bootstrapped.value = true;
-            localStorage.removeItem(STORAGE_KEY);
-        }
-    }
-
-    function hasAnyRole(required = []) {
-        if (!required.length) return true;
-        return required.some((r) => roles.value.includes(r));
-    }
-
-    return {
-        token,
-        user,
-        redirectAfterLogin,
-        bootstrapped,
-        isLoggedIn,
-        roles,
-        canAccessInternal,
-        restore,
-        persist,
-        setRedirectAfterLogin,
-        clearRedirectAfterLogin,
-        login,
-        logout,
-        hasAnyRole
-    };
 });

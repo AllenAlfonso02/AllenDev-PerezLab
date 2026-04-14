@@ -1,8 +1,8 @@
 <script setup>
+import AppMenu from '@/layout/AppMenu.vue';
 import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import AppMenu from './AppMenu.vue';
 
 const route = useRoute();
 const auth = useAuthStore();

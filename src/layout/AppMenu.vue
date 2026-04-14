@@ -62,13 +62,34 @@ const internalModel = [
  * - If it has roles => user must have at least one
  * Also filters empty groups.
  */
+// function filterByRole(groups) {
+//     return groups
+//         .map((group) => {
+//             if (group.separator) return group;
+
+//             const items = (group.items ?? []).filter((item) => {
+//                 const required = item.roles ?? [];
+//                 return auth.hasAnyRole(required);
+//             });
+
+//             return { ...group, items };
+//         })
+//         .filter((group) => group.separator || (group.items?.length ?? 0) > 0);
+// }
 function filterByRole(groups) {
     return groups
         .map((group) => {
             if (group.separator) return group;
 
             const items = (group.items ?? []).filter((item) => {
-                const required = item.roles ?? [];
+                const required = item.roles;
+
+                // ✅ NO roles = public item → always show
+                if (!required || required.length === 0) {
+                    return true;
+                }
+
+                // ✅ roles exist → check user
                 return auth.hasAnyRole(required);
             });
 
@@ -76,11 +97,14 @@ function filterByRole(groups) {
         })
         .filter((group) => group.separator || (group.items?.length ?? 0) > 0);
 }
-
 const model = computed(() => {
     const base = isInternalArea.value ? internalModel : publicModel;
     return filterByRole(base);
 });
+// const model = computed(() => {
+//     const base = isInternalArea.value ? internalModel : publicModel;
+//     return filterByRole(base);
+// });
 </script>
 
 <template>

@@ -1,8 +1,6 @@
 When you are handling cors on the aws lambda side, you could deactivate the CORS in the
 function config tab.
 
-git add --all .
-git commit -m ""
 npm run build
 git add --all .
 git commit -m ""

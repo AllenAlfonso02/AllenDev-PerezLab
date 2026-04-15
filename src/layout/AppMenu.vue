@@ -41,11 +41,12 @@ const internalModel = [
         icon: 'pi pi-fw pi-briefcase',
         items: [
             // { label: 'Products', icon: 'pi pi-fw pi-box', to: '/app/Products', roles: ['staff', 'admin'] },
-            // { label: 'Ledger', icon: 'pi pi-fw pi-book', to: '/app/Ledger', roles: ['admin'] },
             { label: 'Table', icon: 'pi pi-fw pi-table', to: '/app/uikit/table', roles: ['staff', 'admin'] },
             { label: 'Finished Product', icon: 'pi pi-fw pi-clipboard', to: '/app/uikit/finished-product', roles: ['staff', 'admin'] },
             { label: 'Raw Materials', icon: 'pi pi-fw pi-chart-scatter', to: '/app/uikit/inventory', roles: ['staff', 'admin'] },
-            { label: 'Batches', icon: 'pi pi-fw pi-book', to: '/app/uikit/batch-table', roles: ['staff', 'admin'] }
+            { label: 'Batches', icon: 'pi pi-fw pi-book', to: '/app/uikit/batch-table', roles: ['staff', 'admin'] },
+            { label: 'Batch Records', icon: 'pi pi-fw pi-calculator', to: '/app/uikit/batch-records', roles: ['admin', 'staff'] },
+            { label: 'Batch Weight', icon: 'pi pi-fw pi-gauge', to: '/app/uikit/batch-weight', roles: ['admin', 'staff'] }
         ]
     },
 
@@ -62,20 +63,7 @@ const internalModel = [
  * - If it has roles => user must have at least one
  * Also filters empty groups.
  */
-// function filterByRole(groups) {
-//     return groups
-//         .map((group) => {
-//             if (group.separator) return group;
 
-//             const items = (group.items ?? []).filter((item) => {
-//                 const required = item.roles ?? [];
-//                 return auth.hasAnyRole(required);
-//             });
-
-//             return { ...group, items };
-//         })
-//         .filter((group) => group.separator || (group.items?.length ?? 0) > 0);
-// }
 function filterByRole(groups) {
     return groups
         .map((group) => {

@@ -1,6 +1,6 @@
 <template>
     <div class="p-6 bg-gray-50 min-h-screen font-sans text-gray-900">
-        <div class="max-w-5xl mx-auto bg-white shadow-lg border border-gray-300 p-8">
+        <div class="max-w-7xl mx-auto bg-white shadow-lg border border-gray-300 p-8">
             <div class="flex justify-between border-b-2 border-black pb-4 mb-6">
                 <div>
                     <h1 class="text-2xl font-black">PEREZ LAB INC.</h1>
@@ -13,7 +13,7 @@
             </div>
 
             <div class="mb-6">
-                <h3 class="font-bold mb-2">D1. OPERATION - FINAL TABLETING</h3>
+                <h3 class="font-bold mb-2 uppercase text-sm">D1. OPERATION - FINAL TABLETING</h3>
                 <div class="grid grid-cols-2 border border-black">
                     <div class="border-r border-black p-2 flex items-center">
                         <span class="font-bold mr-2 uppercase text-sm">Product:</span>
@@ -26,15 +26,17 @@
                 </div>
             </div>
 
-            <div class="mb-6">
+            <div class="mb-6 overflow-x-auto">
                 <table class="w-full border-collapse border border-black text-sm">
                     <thead>
                         <tr class="bg-gray-100">
-                            <th class="border border-black p-2 w-16">Cont. #</th>
+                            <th class="border border-black p-2 w-12">#</th>
                             <th class="border border-black p-2">Tare</th>
-                            <th class="border border-black p-2">Tablet Net Weight (kg)</th>
+                            <th class="border border-black p-2">Net Weight (kg)</th>
                             <th class="border border-black p-2">Done by</th>
+                            <th class="border border-black p-2 w-40">Date</th>
                             <th class="border border-black p-2">Checked by</th>
+                            <th class="border border-black p-2 w-40">Checked Date</th>
                             <th class="border border-black p-2 w-12 print:hidden"></th>
                         </tr>
                     </thead>
@@ -43,19 +45,31 @@
                             <td class="border border-black p-2 text-center font-bold">{{ index + 1 }}</td>
                             <td class="border border-black p-2"><input type="number" v-model="row.tare" class="w-full text-center outline-none" /></td>
                             <td class="border border-black p-2"><input type="number" v-model="row.netWeight" class="w-full text-center font-bold outline-none" /></td>
-                            <td class="border border-black p-2"><input type="text" v-model="row.doneBy" class="w-full outline-none" /></td>
-                            <td class="border border-black p-2"><input type="text" v-model="row.checkedBy" class="w-full outline-none" /></td>
+                            <td class="border border-black p-2"><input type="text" v-model="row.doneBy" placeholder="Initials" class="w-full outline-none text-center" /></td>
+                            <td class="border border-black p-1">
+                                <div class="flex items-center space-x-1">
+                                    <input type="date" v-model="row.doneDate" class="w-full text-xs outline-none bg-transparent" />
+                                    <button @click="stampDate(index, 'doneDate')" class="bg-gray-200 hover:bg-gray-300 p-1 rounded print:hidden">📅</button>
+                                </div>
+                            </td>
+                            <td class="border border-black p-2"><input type="text" v-model="row.checkedBy" placeholder="Initials" class="w-full outline-none text-center" /></td>
+                            <td class="border border-black p-1">
+                                <div class="flex items-center space-x-1">
+                                    <input type="date" v-model="row.checkedDate" class="w-full text-xs outline-none bg-transparent" />
+                                    <button @click="stampDate(index, 'checkedDate')" class="bg-gray-200 hover:bg-gray-300 p-1 rounded print:hidden">📅</button>
+                                </div>
+                            </td>
                             <td class="border border-black p-2 text-center print:hidden">
                                 <button @click="removeRow(index)" class="text-red-500 hover:text-red-700" v-if="form.tabletingRows.length > 1">✕</button>
                             </td>
                         </tr>
                     </tbody>
                     <tfoot>
-                        <tr class="bg-gray-50 font-bold">
+                        <tr class="bg-gray-50 font-bold text-base">
                             <td colspan="2" class="border border-black p-2 text-right">TOTAL (B)</td>
                             <td class="border border-black p-2 text-center underline">{{ totalWeight }} kg</td>
-                            <td colspan="3" class="border border-black p-2">
-                                <button @click="addRow" class="bg-green-600 text-white px-2 py-1 rounded text-xs print:hidden">+ Add Container</button>
+                            <td colspan="5" class="border border-black p-2">
+                                <button @click="addRow" class="bg-green-600 text-white px-3 py-1 rounded text-xs print:hidden uppercase font-bold tracking-wider">+ Add Container</button>
                             </td>
                         </tr>
                     </tfoot>
@@ -63,7 +77,7 @@
             </div>
 
             <div class="border-2 border-black p-4 mb-6 bg-white">
-                <h3 class="font-bold text-center underline mb-4">Actual Yield</h3>
+                <h3 class="font-bold text-center underline mb-4 uppercase">Actual Yield</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
                     <div>
                         <p><strong>A</strong> = Total Quantity of Tablets Produced</p>
@@ -97,20 +111,32 @@
                     <div class="text-sm">Lot No.: <input v-model="form.reconciliation.lotNo" class="border-b border-black w-32 outline-none font-mono px-2" /></div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                    <div class="flex justify-between border-b border-gray-300">
-                        <span>Quantity (ML):</span>
-                        <input type="number" v-model="form.reconciliation.quantityMl" class="w-20 text-right font-bold outline-none" />
+                <div class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    <div class="flex justify-between border-b border-gray-300 pb-1">
+                        <span>Quantity (k):</span>
+                        <div class="font-bold text-blue-700 bg-gray-50 px-2 rounded">{{ actualYield }}</div>
                     </div>
-                    <div class="flex justify-between border-b border-gray-300">
+                    <div class="flex justify-between border-b border-gray-300 pb-1">
                         <span>Theoretical Weight (kg):</span>
-                        <input type="number" v-model="form.reconciliation.theoWeight" class="w-20 text-right font-bold outline-none" />
+                        <input type="number" v-model="form.reconciliation.theoWeight" class="w-24 text-right font-bold outline-none bg-yellow-50" />
                     </div>
-                    <div class="flex justify-between border-b border-gray-300">
-                        <span>Accepted Range:</span>
-                        <span class="font-bold">±5%</span>
+
+                    <div class="col-span-1 flex flex-col space-y-1">
+                        <div class="flex justify-between border-b border-gray-300">
+                            <span>Accepted Range:</span>
+                            <span class="font-bold">±5%</span>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-gray-600 px-1 italic">
+                            <span
+                                >Low: <b class="text-blue-700">{{ theoRange.low }} kg</b></span
+                            >
+                            <span
+                                >High: <b class="text-red-700">{{ theoRange.high }} kg</b></span
+                            >
+                        </div>
                     </div>
-                    <div class="flex justify-between border-b border-gray-300">
+
+                    <div class="flex justify-between border-b border-gray-300 pb-1">
                         <span>QC Pass/Fail:</span>
                         <select v-model="form.reconciliation.qcPass" class="font-bold text-right outline-none bg-transparent">
                             <option :value="null">PENDING</option>
@@ -122,8 +148,8 @@
             </div>
 
             <div class="mt-8 flex justify-end space-x-4 print:hidden">
-                <button @click="resetForm" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Clear</button>
-                <button @click="saveData" class="px-8 py-2 bg-black text-white font-bold rounded hover:bg-gray-800 shadow-md">Finalize Record</button>
+                <button @click="resetForm" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded border border-gray-300">Clear Form</button>
+                <button @click="saveData" class="px-8 py-2 bg-black text-white font-bold rounded hover:bg-gray-800 shadow-md uppercase tracking-widest">Finalize Record</button>
             </div>
         </div>
     </div>
@@ -133,46 +159,69 @@
 import { computed, reactive } from 'vue';
 
 const form = reactive({
-    metadata: { effectiveDate: '' },
+    metadata: { effectiveDate: new Date().toISOString().split('T')[0] },
     operation: { product: '', tabletSize: '' },
-    tabletingRows: [{ tare: null, netWeight: null, doneBy: '', checkedBy: '' }],
+    tabletingRows: [
+        {
+            tare: null,
+            netWeight: null,
+            doneBy: '',
+            doneDate: '',
+            checkedBy: '',
+            checkedDate: ''
+        }
+    ],
     yieldCalc: {
         avgWeightMg: null
     },
     reconciliation: {
         lotNo: '',
-        quantityMl: 120,
         theoWeight: 31.5,
         qcPass: null
     }
 });
 
-// Row Management
+const stampDate = (index, field) => {
+    form.tabletingRows[index][field] = new Date().toISOString().split('T')[0];
+};
+
 const addRow = () => {
-    form.tabletingRows.push({ tare: null, netWeight: null, doneBy: '', checkedBy: '' });
+    form.tabletingRows.push({
+        tare: null,
+        netWeight: null,
+        doneBy: '',
+        doneDate: '',
+        checkedBy: '',
+        checkedDate: ''
+    });
 };
 
 const removeRow = (index) => {
     form.tabletingRows.splice(index, 1);
 };
 
-// Calculations
 const totalWeight = computed(() => {
     return form.tabletingRows.reduce((acc, row) => acc + (Number(row.netWeight) || 0), 0);
 });
 
 const actualYield = computed(() => {
     if (!form.yieldCalc.avgWeightMg || form.yieldCalc.avgWeightMg === 0) return 0;
-    // Formula: (Total Weight / Avg 10 Weight) * 1,000,000
     const result = (totalWeight.value / form.yieldCalc.avgWeightMg) * 1000000;
     return Math.round(result);
+});
+
+const theoRange = computed(() => {
+    const val = Number(form.reconciliation.theoWeight) || 0;
+    return {
+        low: (val * 0.95).toFixed(3),
+        high: (val * 1.05).toFixed(3)
+    };
 });
 
 const saveData = () => {
     const payload = {
         ...form,
-        calculatedTotalWeight: totalWeight.value,
-        calculatedActualYield: actualYield.value,
+        calculatedActualYield: actualYield.value, // Auto-populated value
         timestamp: new Date().toISOString()
     };
     console.log('Saving to MongoDB:', payload);

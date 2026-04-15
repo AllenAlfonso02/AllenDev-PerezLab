@@ -100,21 +100,31 @@
                     </tbody>
                 </table>
 
-                <div class="mt-4 flex space-x-2 print:hidden">
-                    <button @click="addRow" class="bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-gray-800">+ Add 15 Min Check</button>
+                <div class="mt-4 print:hidden">
+                    <button @click="addRow" class="bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 shadow">+ Add 15 Min Check</button>
                 </div>
             </div>
 
-            <div class="flex justify-between items-end border-t-2 border-black pt-6">
-                <div class="text-xs italic text-gray-500">* Ensure all signatures and dates are provided for compliance.</div>
-                <div class="flex items-center space-x-6">
-                    <div class="text-right">
-                        <span class="block text-[10px] uppercase font-bold text-gray-500 tracking-tight">Avg of last 10 tests</span>
-                        <div class="text-4xl font-black font-mono border-4 border-black px-4 py-2 bg-yellow-50 inline-block">
-                            {{ calculatedAverage }}
+            <div class="border-t-2 border-black pt-6">
+                <div class="flex justify-between items-end">
+                    <div class="space-y-4 print:hidden">
+                        <button @click="resetForm" class="text-xs font-bold text-red-600 uppercase border border-red-600 px-4 py-2 rounded hover:bg-red-50 transition-colors">Clear Entire Form</button>
+                        <p class="text-[10px] italic text-gray-500">* Ensure all signatures and dates are provided for compliance.</p>
+                    </div>
+
+                    <div class="flex items-center space-x-6">
+                        <div class="text-right">
+                            <span class="block text-[10px] uppercase font-bold text-gray-500 tracking-tight">Avg of last 10 tests</span>
+                            <div class="text-4xl font-black font-mono border-4 border-black px-4 py-2 bg-yellow-50 inline-block shadow-inner">
+                                {{ calculatedAverage }}
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col space-y-2 print:hidden">
+                            <button @click="submitToMongo" class="bg-green-700 text-white px-8 py-3 font-bold rounded shadow-lg hover:bg-green-800 transition-all uppercase text-sm tracking-widest">Save Record</button>
+                            <button @click="window.print()" class="bg-gray-800 text-white px-8 py-2 font-bold rounded shadow-lg hover:bg-black transition-all uppercase text-xs tracking-widest">Print PDF</button>
                         </div>
                     </div>
-                    <button @click="submitToMongo" class="bg-green-700 text-white px-8 py-4 font-bold rounded shadow-lg hover:bg-green-800 transition-all print:hidden">SAVE RECORD</button>
                 </div>
             </div>
         </div>
@@ -124,8 +134,12 @@
 <script setup>
 import { computed, onMounted, reactive } from 'vue';
 
-const form = reactive({
-    metadata: { effectiveDate: '' },
+const getTodayStr = () => new Date().toISOString().split('T')[0];
+const getTimeStr = () => new Date().toTimeString().split(' ')[0].substring(0, 5);
+
+// Initial state for resetting
+const initialState = () => ({
+    metadata: { effectiveDate: getTodayStr() },
     specs: {
         product: 'MELATONIN',
         lotNo: '',
@@ -134,11 +148,21 @@ const form = reactive({
         hardnessNominal: 8,
         thicknessNominal: 0.293
     },
-    weightChecks: []
+    weightChecks: [
+        {
+            date: getTodayStr(),
+            time: getTimeStr(),
+            weightMg: null,
+            hardnessKp: null,
+            thicknessIn: null,
+            doneBy: '',
+            checkedBy: '',
+            checkedDate: ''
+        }
+    ]
 });
 
-const getTodayStr = () => new Date().toISOString().split('T')[0];
-const getTimeStr = () => new Date().toTimeString().split(' ')[0].substring(0, 5);
+const form = reactive(initialState());
 
 const addRow = () => {
     form.weightChecks.push({
@@ -159,6 +183,12 @@ const stampCheckDate = (index) => {
 
 const removeRow = (index) => {
     form.weightChecks.splice(index, 1);
+};
+
+const resetForm = () => {
+    if (confirm('Are you sure you want to clear this entire record? All unsaved data will be lost.')) {
+        Object.assign(form, initialState());
+    }
 };
 
 // Range Calculation (±5%)
@@ -186,7 +216,6 @@ const calculatedAverage = computed(() => {
 
 onMounted(() => {
     form.metadata.effectiveDate = getTodayStr();
-    addRow();
 });
 
 const submitToMongo = () => {
@@ -199,6 +228,11 @@ const submitToMongo = () => {
 @media print {
     .print\:hidden {
         display: none !important;
+    }
+    .max-w-full {
+        border: none !important;
+        shadow: none !important;
+        p: 0 !important;
     }
 }
 input[type='number']::-webkit-inner-spin-button,

@@ -37,7 +37,9 @@ const router = createRouter({
                 { path: 'uikit/finished-product', name: 'finished-product', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/FinishedProductDoc.vue') },
                 { path: 'uikit/batch-table', name: 'batch-table', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/BatchDoc.vue') },
                 { path: 'uikit/batch-records', name: 'batch-records', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/BatchRecDoc.vue') },
-                { path: 'uikit/batch-weight', name: 'batch-weight', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/BatchWeightDoc.vue') }
+                { path: 'uikit/batch-weight', name: 'batch-weight', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/BatchWeightDoc.vue') },
+                { path: 'uikit/blending-records', name: 'blending-records', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/BatchBlendDoc.vue') },
+                { path: 'uikit/batch-order-records', name: 'batch-order-records', meta: { roles: ['staff', 'admin'] }, component: () => import('@/views/uikit/BatchOrderDoc.vue') }
             ]
         },
 

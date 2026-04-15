@@ -1,6 +1,6 @@
 <template>
     <div class="p-6 bg-gray-100 min-h-screen font-sans text-gray-900">
-        <div class="max-w-full mx-auto bg-white shadow-2xl border border-gray-300 p-8">
+        <div id="pdf-content" class="max-w-full mx-auto bg-white shadow-2xl border border-gray-300 p-8">
             <div class="flex justify-between border-b-2 border-black pb-4 mb-6">
                 <div>
                     <h1 class="text-2xl font-black italic text-blue-900">PEREZ LAB INC.</h1>
@@ -74,7 +74,7 @@
                             <th class="border border-gray-600 p-2 w-24">Done by</th>
                             <th class="border border-gray-600 p-2 w-24">Checked by</th>
                             <th class="border border-gray-600 p-2 w-32">Checked Date</th>
-                            <th class="border border-gray-600 p-2 w-10 print:hidden"></th>
+                            <th class="border border-black p-2 w-10 print:hidden"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -122,7 +122,7 @@
 
                         <div class="flex flex-col space-y-2 print:hidden">
                             <button @click="submitToMongo" class="bg-green-700 text-white px-8 py-3 font-bold rounded shadow-lg hover:bg-green-800 transition-all uppercase text-sm tracking-widest">Save Record</button>
-                            <button @click="window.print()" class="bg-gray-800 text-white px-8 py-2 font-bold rounded shadow-lg hover:bg-black transition-all uppercase text-xs tracking-widest">Print PDF</button>
+                            <button @click="generatePDF" class="bg-gray-800 text-white px-8 py-2 font-bold rounded shadow-lg hover:bg-black transition-all uppercase text-xs tracking-widest">Download PDF</button>
                         </div>
                     </div>
                 </div>
@@ -137,7 +137,6 @@ import { computed, onMounted, reactive } from 'vue';
 const getTodayStr = () => new Date().toISOString().split('T')[0];
 const getTimeStr = () => new Date().toTimeString().split(' ')[0].substring(0, 5);
 
-// Initial state for resetting
 const initialState = () => ({
     metadata: { effectiveDate: getTodayStr() },
     specs: {
@@ -186,12 +185,11 @@ const removeRow = (index) => {
 };
 
 const resetForm = () => {
-    if (confirm('Are you sure you want to clear this entire record? All unsaved data will be lost.')) {
+    if (confirm('Are you sure you want to clear this entire record?')) {
         Object.assign(form, initialState());
     }
 };
 
-// Range Calculation (±5%)
 const calcRange = (nominal, precision = 1) => {
     if (!nominal) return { high: '0.0', low: '0.0' };
     return {
@@ -206,9 +204,7 @@ const thicknessRange = computed(() => calcRange(form.specs.thicknessNominal, 3))
 
 const calculatedAverage = computed(() => {
     const validWeights = form.weightChecks.filter((r) => r.weightMg !== null && r.weightMg > 0).map((r) => Number(r.weightMg));
-
     if (validWeights.length === 0) return '0.0';
-
     const lastTen = validWeights.slice(-10);
     const sum = lastTen.reduce((a, b) => a + b, 0);
     return (sum / lastTen.length).toFixed(1);
@@ -219,8 +215,8 @@ onMounted(() => {
 });
 
 const submitToMongo = () => {
-    console.log('Saving to DB...', JSON.parse(JSON.stringify(form)));
-    alert('Data successfully sent to inventory system.');
+    console.log('Payload:', JSON.parse(JSON.stringify(form)));
+    alert('BPR Record Sent to Database.');
 };
 </script>
 
@@ -229,12 +225,12 @@ const submitToMongo = () => {
     .print\:hidden {
         display: none !important;
     }
-    .max-w-full {
+    #pdf-content {
+        box-shadow: none !important;
         border: none !important;
-        shadow: none !important;
-        p: 0 !important;
     }
 }
+/* Hide spin buttons for cleaner UI on tablets */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
     -webkit-appearance: none;

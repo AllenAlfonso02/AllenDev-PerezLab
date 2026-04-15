@@ -44,7 +44,7 @@ const internalModel = [
             { label: 'Table', icon: 'pi pi-fw pi-table', to: '/app/uikit/table', roles: ['staff', 'admin'] },
             { label: 'Finished Product', icon: 'pi pi-fw pi-clipboard', to: '/app/uikit/finished-product', roles: ['staff', 'admin'] },
             { label: 'Raw Materials', icon: 'pi pi-fw pi-chart-scatter', to: '/app/uikit/inventory', roles: ['staff', 'admin'] },
-            { label: 'Batches', icon: 'pi pi-fw pi-book', to: '/app/uikit/batch-table', roles: ['staff', 'admin'] },
+            // { label: 'Batches', icon: 'pi pi-fw pi-book', to: '/app/uikit/batch-table', roles: ['staff', 'admin'] },
             { label: 'Batch Records', icon: 'pi pi-fw pi-calculator', to: '/app/uikit/batch-records', roles: ['admin', 'staff'] },
             { label: 'Batch Weight', icon: 'pi pi-fw pi-gauge', to: '/app/uikit/batch-weight', roles: ['admin', 'staff'] }
         ]

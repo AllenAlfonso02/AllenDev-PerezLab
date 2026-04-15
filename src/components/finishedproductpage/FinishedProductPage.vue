@@ -235,7 +235,7 @@ onBeforeMount(async () => {
                         </div>
                     </template>
                 </MultiSelect>
-                <label class="text-sm font-bold mt-1">Total Weight: {{ (inputAmountKG * inputMixes) }} kg</label>
+                <label class="text-sm font-bold mt-1">Total Weight: {{ inputAmountKG * inputMixes }} kg</label>
             </div>
 
             <div class="flex flex-col gap-2">
@@ -281,7 +281,7 @@ onBeforeMount(async () => {
                     </div>
                     <div class="flex justify-between py-1 border-b border-indigo-100 bg-indigo-50/50 px-1">
                         <span class="text-sm font-bold text-indigo-600 italic">Total Amount:</span>
-                        <span class="text-sm font-black text-indigo-700">{{ (inputAmountKG * inputMixes) || '0' }} kg</span>
+                        <span class="text-sm font-black text-indigo-700">{{ inputAmountKG * inputMixes || '0' }} kg</span>
                     </div>
                 </div>
             </div>

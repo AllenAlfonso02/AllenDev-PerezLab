@@ -34,6 +34,7 @@
         "sass": "^1.55.0",
         "tailwindcss": "^4.1.17",
         "unplugin-vue-components": "^0.27.3",
+        "unplugin-vue-router": "^0.19.2",
         "vite": "^5.3.1"
     }
 }

@@ -21,13 +21,13 @@
                 <div class="grid grid-cols-2 gap-8 text-xs font-mono mb-6">
                     <div class="flex items-end space-x-2">
                         <span>Done by:</span>
-                        <input v-model="form.sigs.headerDoneBy" class="border-b border-black flex-grow outline-none uppercase font-bold" />
+                        <input v-model="form.sigs.headerDoneBy" class="border-b border-black grow outline-none uppercase font-bold" />
                         <span>Date:</span>
                         <input v-model="form.sigs.headerDoneDate" class="border-b border-black w-24 outline-none" />
                     </div>
                     <div class="flex items-end space-x-2">
                         <span>Approved by:</span>
-                        <input v-model="form.sigs.headerAppBy" class="border-b border-black flex-grow outline-none uppercase font-bold" />
+                        <input v-model="form.sigs.headerAppBy" class="border-b border-black grow outline-none uppercase font-bold" />
                     </div>
                 </div>
             </div>
@@ -95,13 +95,13 @@
                 <div class="space-y-4 font-mono text-xs">
                     <div class="flex items-end space-x-4">
                         <span class="font-bold">QC Pass/Fail:</span>
-                        <input v-model="form.qc.status" class="border-b border-black flex-grow outline-none uppercase font-black italic text-center" placeholder="PASS/FAIL" />
+                        <input v-model="form.qc.status" class="border-b border-black grow outline-none uppercase font-black italic text-center" placeholder="PASS/FAIL" />
                         <span>Date:</span>
                         <input v-model="form.qc.statusDate" class="border-b border-black w-24 outline-none" />
                     </div>
                     <div class="flex items-end space-x-4">
                         <span class="font-bold">Done by:</span>
-                        <input v-model="form.qc.doneBy" class="border-b border-black flex-grow outline-none uppercase italic" />
+                        <input v-model="form.qc.doneBy" class="border-b border-black grow outline-none uppercase italic" />
                         <span>Date:</span>
                         <input v-model="form.qc.doneDate" class="border-b border-black w-24 outline-none" />
                     </div>

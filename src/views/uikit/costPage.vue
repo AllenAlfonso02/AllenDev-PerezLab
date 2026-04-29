@@ -1,7 +1,7 @@
 <script setup>
-import cost from '@/components/cost/cost.vue';
+import PharmaCostDashboard from '@/components/cost/PharmaCostDashboard.vue';
 </script>
 
 <template>
-    <cost />
+    <PharmaCostDashboard />
 </template>

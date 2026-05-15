@@ -1,9 +1,30 @@
 <script setup>
-import { loadQuote, saveQuote, simulateQuote } from '@/composables/Cost/costApi.js';
+import { getProducts, loadQuote, saveQuote, simulateQuote } from '@/composables/Cost/costApi.js';
 import FloatLabel from 'primevue/floatlabel';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
-import { computed, reactive } from 'vue';
+import Select from 'primevue/select';
+import { computed, onMounted, reactive, ref } from 'vue';
+
+const products = ref([]);
+const selectedProduct = ref(null);
+
+async function loadProducts() {
+    try {
+        console.log('About to get products from API');
+        const data = await getProducts();
+        console.log('Got products:', data);
+        products.value = data.map((item) => ({
+            label: `${item.sku} - ${item.name}`,
+            value: item.name,
+            raw: item
+        }));
+    } catch (e) {
+        console.error('Failed to load products:', e);
+    }
+}
+
+onMounted(loadProducts);
 
 const state = reactive({
     product: {
@@ -36,10 +57,9 @@ const state = reactive({
         overhead: 0,
         packagingLabor: 0,
         labFee: 0,
-
-        qcTesting: 5000,
-        qaLabor: 2000,
-        facilityOverhead: 8000,
+        qcTesting: 0,
+        qaLabor: 0,
+        facilityOverhead: 4000,
         stabilityTesting: 3000,
         regulatoryAmortization: 2000,
         depreciation: 4000
@@ -96,7 +116,29 @@ const state = reactive({
         otherIngredients: ''
     },
 
-    lastUpdated: ''
+    lastUpdated: '',
+
+    packaging: {
+        bottleDescription: '',
+        capDescription: '',
+        neckBandDescription: '',
+        cotton: '',
+        silica: '',
+        label: '',
+        innerBox: '',
+        masterBoxQty: '',
+        masterBoxPack: '',
+        bottlesPerMaster: ''
+    },
+
+    capsule: {
+        size: '',
+        color: '',
+        emptyCapsule: '',
+        weightMg: ''
+    },
+
+    error: ''
 });
 
 const loading = reactive({
@@ -141,7 +183,7 @@ const originalBottleCost = computed(() => {
 const bottleSellingPrice = computed(() => {
     // Logic updated to calculate price based on the target margin input
     const marginDecimal = Number(state.pricing.targetMarginPercent || 0) / 100;
-    return originalBottleCost.value * (1 + marginDecimal); 
+    return originalBottleCost.value * (1 + marginDecimal);
 });
 
 const pharmaMarginPercent = computed(() => {
@@ -158,22 +200,29 @@ function refreshPricing() {
     state.pricing.bottleSelling = Number(bottleSellingPrice.value.toFixed(2));
 }
 
-async function saveToAWS() {
-    if (!state.product.quote) {
-        alert('Quote ID required');
-        return;
-    }
-
+async function saveToAWS(itemName) {
+    console.log('AM I IN HERE???????????');
     loading.save = true;
+
+    console.log('Current State: ', JSON.stringify(state, null, 2));
+
+    state.product.name = itemName;
+    console.log('Saving with ID:', itemName);
 
     try {
         refreshPricing();
 
-        const data = await saveQuote(state);
+        const payload = JSON.parse(JSON.stringify(state));
+
+        console.log('Payload for save: ', payload);
+
+        const data = await saveQuote(payload);
 
         if (data) {
             Object.assign(state, data);
         }
+
+        console.log('State after save: ', JSON.stringify(state, null, 2));
 
         alert('Quote Saved');
     } catch (e) {
@@ -184,18 +233,32 @@ async function saveToAWS() {
     }
 }
 
-async function loadFromAWS() {
-    const id = prompt('Quote ID:');
+async function loadFromAWS(state) {
+    console.log('state before load: ', state);
+    const id = state.value;
+    console.log('First State: ', JSON.stringify(state, null, 2));
 
-    if (!id) return;
+    if (!id) {
+        await saveToAWS(state.value);
+        // return;
+    }
 
     loading.load = true;
 
     try {
-        const data = await loadQuote(id);
+        console.log('Loading with ID:', id);
+        console.log('State before load API call: ', JSON.stringify(state, null, 2));
+        const data = await loadQuote(id, state);
+
+        if (!data.ok) {
+            await saveToAWS(state.value);
+            return;
+        }
 
         if (data) {
             Object.assign(state, data);
+            console.log('State after load: ', JSON.stringify(state, null, 2));
+            alert('Quote Loaded');
         } else {
             alert('Not Found');
         }
@@ -208,8 +271,9 @@ async function loadFromAWS() {
 }
 
 async function runPharmaSimulation() {
-    if (!state.product.quote) {
-        alert('Quote ID required');
+    console.log('Product Name: ', state.value);
+    if (!state.value) {
+        alert('Product name required');
         return;
     }
 
@@ -273,13 +337,15 @@ function removeFactRow(index) {
             </header>
 
             <section class="bg-white rounded-2xl shadow p-4 flex gap-3">
-                <button @click="loadFromAWS" class="bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <!-- <button @click="loadFromAWS" class="bg-gray-700 text-white px-4 py-2 rounded-lg">
                     {{ loading.load ? 'Loading...' : 'Load' }}
                 </button>
 
                 <button @click="saveToAWS" class="bg-green-700 text-white px-4 py-2 rounded-lg">
                     {{ loading.save ? 'Saving...' : 'Save' }}
-                </button>
+                </button> -->
+
+                <Select @change="loadFromAWS" v-model="selectedProduct" :options="products" optionLabel="label" optionValue="value" placeholder="Select Product" class="w-full" />
 
                 <button @click="runPharmaSimulation" class="bg-blue-700 text-white px-4 py-2 rounded-lg">
                     {{ loading.simulation ? 'Running...' : 'Run Simulation' }}
@@ -315,9 +381,7 @@ function removeFactRow(index) {
                         <InputNumber v-model="state.pricing.targetMarginPercent" inputId="target-margin" class="w-full" inputClass="w-full" suffix="%" />
                         <label for="target-margin">Target Margin %</label>
                     </FloatLabel>
-                    <div class="flex items-center text-gray-600 italic">
-                        Adjusting the margin will automatically update the Calculated Selling Price above.
-                    </div>
+                    <div class="flex items-center text-gray-600 italic">Adjusting the margin will automatically update the Calculated Selling Price above.</div>
                 </div>
             </section>
 

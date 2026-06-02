@@ -141,36 +141,16 @@ const state = reactive({
     error: ''
 });
 
-const loading = reactive({
-    save: false,
-    load: false,
-    simulation: false
-});
+import { useCostStore } from '@/stores/costStore';
 
-const totalMaterialCost = computed(() => {
-    return state.materials.reduce((sum, item) => {
-        return sum + Number(item.totalPrice || 0);
-    }, 0);
-});
+const costStore = useCostStore();
 
-const totalKg = computed(() => {
-    return state.materials.reduce((sum, item) => {
-        return sum + Number(item.totalKg || 0);
-    }, 0);
-});
+const {
+    state,
+    loading,
+    productOptions,
 
-const packagingCostPerBottle = computed(() => {
-    return (
-        Number(state.packagingCosts.bottle || 0) +
-        Number(state.packagingCosts.cap || 0) +
-        Number(state.packagingCosts.neckBand || 0) +
-        Number(state.packagingCosts.label || 0) +
-        Number(state.packagingCosts.cotton || 0) +
-        Number(state.packagingCosts.silica || 0) +
-        Number(state.packagingCosts.innerBox || 0) +
-        Number(state.packagingCosts.masterBox || 0)
-    );
-});
+    originalBottleCost,
 
 const feeCostPerBottle = computed(() => {
     return Number(state.fees.encapsulation || 0) + Number(state.fees.overhead || 0) + Number(state.fees.packagingLabor || 0) + Number(state.fees.labFee || 0);
@@ -186,14 +166,22 @@ const bottleSellingPrice = computed(() => {
     return originalBottleCost.value * (1 + marginDecimal);
 });
 
-const pharmaMarginPercent = computed(() => {
-    const price = Number(state.pricing.bottleSelling || bottleSellingPrice.value || 0);
-    const cost = Number(state.pharmaResults.averageCostPerBottle || 0);
+const {
+    fetchProducts,
+    load,
+    save,
+    simulate,
 
-    if (!price || !cost) return 0;
+    addMaterial,
+    removeMaterial,
+    addFactRow,
+    removeFactRow
+} = costStore;
 
-    return ((price - cost) / price) * 100;
+onMounted(() => {
+    fetchProducts();
 });
+</script>
 
 function refreshPricing() {
     state.pricing.originalBottleCost = Number(originalBottleCost.value.toFixed(2));
@@ -284,463 +272,850 @@ async function runPharmaSimulation() {
 
         const result = await simulateQuote(state);
 
-        if (result.pharmaResults) {
-            state.pharmaResults = result.pharmaResults;
-        } else {
-            state.pharmaResults = result;
-        }
+            <!-- HEADER -->
+            <header
+                class="bg-white rounded-2xl shadow p-6 border-l-8 border-blue-700"
+            >
+                <h1 class="text-3xl font-bold">
+                    Pharma-Grade Cost Dashboard
+                </h1>
 
-        alert('Simulation Complete');
-    } catch (e) {
-        console.error(e);
-        alert('Simulation Failed');
-    } finally {
-        loading.simulation = false;
-    }
-}
-
-function addMaterial() {
-    state.materials.push({
-        name: '',
-        type: 'excipient',
-        mgUnit: 0,
-        totalKg: 0,
-        priceKg: 0,
-        totalPrice: 0,
-        weightPercent: 0
-    });
-}
-
-function removeMaterial(index) {
-    state.materials.splice(index, 1);
-}
-
-function addFactRow() {
-    state.facts.items.push({
-        name: '',
-        amount: '',
-        dv: ''
-    });
-}
-
-function removeFactRow(index) {
-    state.facts.items.splice(index, 1);
-}
-</script>
-
-<template>
-    <div class="p-6 bg-gray-100 min-h-screen">
-        <div class="max-w-7xl mx-auto space-y-6">
-            <header class="bg-white rounded-2xl shadow p-6 border-l-8 border-blue-700">
-                <h1 class="text-3xl font-bold">Pharma-Grade Cost Dashboard</h1>
-                <p class="text-gray-500">MongoDB document powered by AWS Lambda Function URL.</p>
+                <p class="text-gray-500">
+                    MongoDB document powered by AWS Lambda Function URL.
+                </p>
             </header>
+
+            <!-- PRODUCT -->
+            <section class="bg-white rounded-2xl shadow p-6">
+                <h2 class="text-xl font-bold mb-4">
+                    Product
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                    <FloatLabel>
+                        <InputText
+                            id="product-company"
+                            v-model="state.product.company"
+                            class="w-full"
+                        />
+
+                        <label for="product-company">
+                            Company
+                        </label>
+                    </FloatLabel>
+
+                    <FloatLabel>
+                        <Select
+                            id="product-name"
+                            v-model="state.product.name"
+                            :options="productOptions.items"
+                            optionLabel="label"
+                            optionValue="value"
+                            filter
+                            showClear
+                            class="w-full"
+                        />
+
+                        <label for="product-name">
+                            Product Name
+                        </label>
+                    </FloatLabel>
 
             <section class="bg-white rounded-2xl shadow p-4 flex gap-3">
                 <!-- <button @click="loadFromAWS" class="bg-gray-700 text-white px-4 py-2 rounded-lg">
                     {{ loading.load ? 'Loading...' : 'Load' }}
                 </button>
 
-                <button @click="saveToAWS" class="bg-green-700 text-white px-4 py-2 rounded-lg">
+                <button
+                    @click="save"
+                    class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg transition"
+                >
                     {{ loading.save ? 'Saving...' : 'Save' }}
                 </button> -->
 
                 <Select @change="loadFromAWS" v-model="selectedProduct" :options="products" optionLabel="label" optionValue="value" placeholder="Select Product" class="w-full" />
 
-                <button @click="runPharmaSimulation" class="bg-blue-700 text-white px-4 py-2 rounded-lg">
-                    {{ loading.simulation ? 'Running...' : 'Run Simulation' }}
+                <button
+                    @click="simulate"
+                    class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg transition"
+                >
+                    {{
+                        loading.simulation
+                            ? 'Running...'
+                            : 'Run Simulation'
+                    }}
                 </button>
+
+                </div>
             </section>
 
+            <!-- KPI CARDS -->
             <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
                 <div class="bg-white rounded-xl shadow p-5">
-                    <p class="text-sm text-gray-500">Original Cost / Bottle</p>
-                    <h2 class="text-2xl font-bold">${{ state.pricing.originalBottleCost.toFixed(2) }}</h2>
+                    <p class="text-sm text-gray-500">
+                        Original Cost / Bottle
+                    </p>
+
+                    <h2 class="text-2xl font-bold">
+                        <!-- ${{ Number(state.pricing.originalBottleCost || 0).toFixed(2) }} -->
+                        ${{Number(originalBottleCost || 0).toFixed(2) }}
+                    </h2>
                 </div>
 
                 <div class="bg-white rounded-xl shadow p-5">
-                    <p class="text-sm text-gray-500">Calculated Selling Price</p>
-                    <h2 class="text-2xl font-bold">${{ bottleSellingPrice.toFixed(2) }}</h2>
+                    <p class="text-sm text-gray-500">
+                        Calculated Selling Price
+                    </p>
+
+                    <h2 class="text-2xl font-bold">
+                        ${{ Number(bottleSellingPrice || 0).toFixed(2) }}
+                    </h2>
                 </div>
 
                 <div class="bg-white rounded-xl shadow p-5">
-                    <p class="text-sm text-gray-500">Avg Pharma Cost</p>
-                    <h2 class="text-2xl font-bold">${{ Number(state.pharmaResults.averageCostPerBottle || 0).toFixed(2) }}</h2>
+                    <p class="text-sm text-gray-500">
+                        Avg Pharma Cost
+                    </p>
+
+                    <h2 class="text-2xl font-bold">
+                        ${{
+                            Number(
+                                state.pharmaResults.averageCostPerBottle || 0
+                            ).toFixed(2)
+                        }}
+                    </h2>
                 </div>
 
                 <div class="bg-white rounded-xl shadow p-5">
-                    <p class="text-sm text-gray-500">Pharma Margin</p>
-                    <h2 class="text-2xl font-bold">{{ pharmaMarginPercent.toFixed(1) }}%</h2>
+                    <p class="text-sm text-gray-500">
+                        Pharma Margin
+                    </p>
+
+                    <h2 class="text-2xl font-bold">
+                        {{ Number(pharmaMarginPercent || 0).toFixed(1) }}%
+                    </h2>
                 </div>
+
             </section>
 
+            <!-- PRICING -->
             <section class="bg-white rounded-2xl shadow p-6">
-                <h2 class="text-xl font-bold mb-4">Pricing Strategy</h2>
+                <h2 class="text-xl font-bold mb-4">
+                    Pricing Strategy
+                </h2>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                     <FloatLabel>
-                        <InputNumber v-model="state.pricing.targetMarginPercent" inputId="target-margin" class="w-full" inputClass="w-full" suffix="%" />
-                        <label for="target-margin">Target Margin %</label>
+                        <InputNumber
+                            v-model="state.pricing.targetMarginPercent"
+                            inputId="target-margin"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                            suffix="%"
+                        />
+
+                        <label for="target-margin">
+                            Target Margin %
+                        </label>
                     </FloatLabel>
                     <div class="flex items-center text-gray-600 italic">Adjusting the margin will automatically update the Calculated Selling Price above.</div>
                 </div>
             </section>
 
+            <!-- SIMULATION -->
             <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-white rounded-xl shadow p-5">
-                    <p class="text-sm text-gray-500">Best Case</p>
-                    <h2 class="text-xl font-bold">${{ Number(state.pharmaResults.bestCaseCostPerBottle || 0).toFixed(2) }}</h2>
-                </div>
 
                 <div class="bg-white rounded-xl shadow p-5">
-                    <p class="text-sm text-gray-500">Worst Case</p>
-                    <h2 class="text-xl font-bold">${{ Number(state.pharmaResults.worstCaseCostPerBottle || 0).toFixed(2) }}</h2>
+                    <p class="text-sm text-gray-500">
+                        Best Case
+                    </p>
+
+                    <h2 class="text-xl font-bold">
+                        ${{
+                            Number(
+                                state.pharmaResults.bestCaseCostPerBottle || 0
+                            ).toFixed(2)
+                        }}
+                    </h2>
                 </div>
 
                 <div class="bg-white rounded-xl shadow p-5">
-                    <p class="text-sm text-gray-500">P10 Cost</p>
-                    <h2 class="text-xl font-bold">${{ Number(state.pharmaResults.p10CostPerBottle || 0).toFixed(2) }}</h2>
+                    <p class="text-sm text-gray-500">
+                        Worst Case
+                    </p>
+
+                    <h2 class="text-xl font-bold">
+                        ${{
+                            Number(
+                                state.pharmaResults.worstCaseCostPerBottle || 0
+                            ).toFixed(2)
+                        }}
+                    </h2>
                 </div>
 
                 <div class="bg-white rounded-xl shadow p-5">
-                    <p class="text-sm text-gray-500">P90 Risk Cost</p>
-                    <h2 class="text-xl font-bold">${{ Number(state.pharmaResults.p90CostPerBottle || 0).toFixed(2) }}</h2>
+                    <p class="text-sm text-gray-500">
+                        P10 Cost
+                    </p>
+
+                    <h2 class="text-xl font-bold">
+                        ${{
+                            Number(
+                                state.pharmaResults.p10CostPerBottle || 0
+                            ).toFixed(2)
+                        }}
+                    </h2>
                 </div>
+
+                <div class="bg-white rounded-xl shadow p-5">
+                    <p class="text-sm text-gray-500">
+                        P90 Risk Cost
+                    </p>
+
+                    <h2 class="text-xl font-bold">
+                        ${{
+                            Number(
+                                state.pharmaResults.p90CostPerBottle || 0
+                            ).toFixed(2)
+                        }}
+                    </h2>
+                </div>
+
             </section>
 
+            <!-- BATCH -->
             <section class="bg-white rounded-2xl shadow p-6">
-                <h2 class="text-xl font-bold mb-4">Product</h2>
+                <h2 class="text-xl font-bold mb-4">
+                    Batch
+                </h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
                     <FloatLabel>
-                        <InputText id="product-company" v-model="state.product.company" class="w-full" />
-                        <label for="product-company">Company</label>
+                        <InputNumber
+                            v-model="state.batch.quantityCapsules"
+                            inputId="batch-quantity-capsules"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label for="batch-quantity-capsules">
+                            Quantity Capsules
+                        </label>
                     </FloatLabel>
 
                     <FloatLabel>
-                        <InputText id="product-name" v-model="state.product.name" class="w-full" />
-                        <label for="product-name">Product Name</label>
+                        <InputNumber
+                            v-model="state.batch.capsulesPerBottle"
+                            inputId="batch-capsules-per-bottle"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label for="batch-capsules-per-bottle">
+                            Capsules / Bottle
+                        </label>
                     </FloatLabel>
 
                     <FloatLabel>
-                        <InputText id="product-quote" v-model="state.product.quote" class="w-full" />
-                        <label for="product-quote">Quote</label>
+                        <InputNumber
+                            v-model="state.batch.quantityBottles"
+                            inputId="batch-quantity-bottles"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label for="batch-quantity-bottles">
+                            Quantity Bottles
+                        </label>
                     </FloatLabel>
 
                     <FloatLabel>
-                        <InputText id="product-date" v-model="state.product.date" class="w-full" />
-                        <label for="product-date">Date</label>
+                        <InputNumber
+                            v-model="state.batch.theoreticalWeightKg"
+                            inputId="batch-theoretical-kg"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label for="batch-theoretical-kg">
+                            Theoretical Kg
+                        </label>
                     </FloatLabel>
+
                 </div>
             </section>
 
+            <!-- SHIPPING COSTS -->
+            <section class="bg-white rounded-2xl shadow p-6"> 
+                <h2 class="text-xl font-bold mb-4">
+                    Shipping Costs
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                    <Checkbox v-model="state.customShipping" :binary="true" />
+
+                    <FloatLabel
+                        v-for="(value, key) in state.shippingCosts"
+                        :key="key"
+                    >
+                        <InputNumber
+                            v-model="state.shippingCosts[key]"
+                            :inputId="`shipping-${key}`"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label :for="`shipping-${key}`">
+                            {{ key }}
+                        </label>
+                    </FloatLabel>
+
+                </div>
+
+            </section>>
+
+            <!-- PACKAGING COSTS -->
             <section class="bg-white rounded-2xl shadow p-6">
-                <h2 class="text-xl font-bold mb-4">Batch</h2>
+                <h2 class="text-xl font-bold mb-4">
+                    Packaging Costs
+                </h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <FloatLabel>
-                        <InputNumber v-model="state.batch.quantityCapsules" inputId="batch-quantity-capsules" class="w-full" inputClass="w-full" />
-                        <label for="batch-quantity-capsules">Quantity Capsules</label>
+
+                    <FloatLabel
+                        v-for="(value, key) in state.packagingCosts"
+                        :key="key"
+                    >
+                        <InputNumber
+                            v-model="state.packagingCosts[key]"
+                            :inputId="`packaging-${key}`"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label :for="`packaging-${key}`">
+                            {{ key }}
+                        </label>
                     </FloatLabel>
 
-                    <FloatLabel>
-                        <InputNumber v-model="state.batch.capsulesPerBottle" inputId="batch-capsules-per-bottle" class="w-full" inputClass="w-full" />
-                        <label for="batch-capsules-per-bottle">Capsules / Bottle</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.batch.quantityBottles" inputId="batch-quantity-bottles" class="w-full" inputClass="w-full" />
-                        <label for="batch-quantity-bottles">Quantity Bottles</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.batch.theoreticalWeightKg" inputId="batch-theoretical-kg" class="w-full" inputClass="w-full" />
-                        <label for="batch-theoretical-kg">Theoretical Kg</label>
-                    </FloatLabel>
                 </div>
             </section>
 
+            <!-- FEES -->
             <section class="bg-white rounded-2xl shadow p-6">
-                <h2 class="text-xl font-bold mb-4">Packaging Costs</h2>
+                <h2 class="text-xl font-bold mb-4">
+                    Fees
+                </h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <FloatLabel>
-                        <InputNumber v-model="state.packagingCosts.bottle" inputId="packaging-bottle" class="w-full" inputClass="w-full" />
-                        <label for="packaging-bottle">Bottle</label>
+
+                    <FloatLabel
+                        v-for="(value, key) in state.fees"
+                        :key="key"
+                    >
+                        <InputNumber
+                            v-model="state.fees[key]"
+                            :inputId="`fee-${key}`"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label :for="`fee-${key}`">
+                            {{ key }}
+                        </label>
                     </FloatLabel>
 
-                    <FloatLabel>
-                        <InputNumber v-model="state.packagingCosts.cap" inputId="packaging-cap" class="w-full" inputClass="w-full" />
-                        <label for="packaging-cap">Cap</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.packagingCosts.neckBand" inputId="packaging-neck-band" class="w-full" inputClass="w-full" />
-                        <label for="packaging-neck-band">Neck Band</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.packagingCosts.label" inputId="packaging-label" class="w-full" inputClass="w-full" />
-                        <label for="packaging-label">Label</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.packagingCosts.cotton" inputId="packaging-cotton" class="w-full" inputClass="w-full" />
-                        <label for="packaging-cotton">Cotton</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.packagingCosts.silica" inputId="packaging-silica" class="w-full" inputClass="w-full" />
-                        <label for="packaging-silica">Silica</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.packagingCosts.innerBox" inputId="packaging-inner-box" class="w-full" inputClass="w-full" />
-                        <label for="packaging-inner-box">Inner Box</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.packagingCosts.masterBox" inputId="packaging-master-box" class="w-full" inputClass="w-full" />
-                        <label for="packaging-master-box">Master Box</label>
-                    </FloatLabel>
                 </div>
             </section>
 
+            <!-- MATERIALS -->
             <section class="bg-white rounded-2xl shadow p-6">
-                <h2 class="text-xl font-bold mb-4">Fees</h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.encapsulation" inputId="fee-encapsulation" class="w-full" inputClass="w-full" />
-                        <label for="fee-encapsulation">Encapsulation</label>
-                    </FloatLabel>
+                <div
+                    class="flex justify-between items-center mb-4"
+                >
+                    <h2 class="text-xl font-bold">
+                        Materials
+                    </h2>
 
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.overhead" inputId="fee-overhead" class="w-full" inputClass="w-full" />
-                        <label for="fee-overhead">Overhead</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.packagingLabor" inputId="fee-packaging-labor" class="w-full" inputClass="w-full" />
-                        <label for="fee-packaging-labor">Packaging Labor</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.labFee" inputId="fee-lab-fee" class="w-full" inputClass="w-full" />
-                        <label for="fee-lab-fee">Lab Fee</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.qcTesting" inputId="fee-qc-testing" class="w-full" inputClass="w-full" />
-                        <label for="fee-qc-testing">QC Testing</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.qaLabor" inputId="fee-qa-labor" class="w-full" inputClass="w-full" />
-                        <label for="fee-qa-labor">QA Labor</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.facilityOverhead" inputId="fee-facility-overhead" class="w-full" inputClass="w-full" />
-                        <label for="fee-facility-overhead">Facility Overhead</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.stabilityTesting" inputId="fee-stability-testing" class="w-full" inputClass="w-full" />
-                        <label for="fee-stability-testing">Stability Testing</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.regulatoryAmortization" inputId="fee-regulatory-amortization" class="w-full" inputClass="w-full" />
-                        <label for="fee-regulatory-amortization">Regulatory Amortization</label>
-                    </FloatLabel>
-
-                    <FloatLabel>
-                        <InputNumber v-model="state.fees.depreciation" inputId="fee-depreciation" class="w-full" inputClass="w-full" />
-                        <label for="fee-depreciation">Depreciation</label>
-                    </FloatLabel>
+                    <button
+                        @click="addMaterial"
+                        class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-lg transition"
+                    >
+                        Add Material
+                    </button>
                 </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm border-collapse">
+
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border p-2 text-left">
+                                    Name
+                                </th>
+
+                                <th class="border p-2 text-left">
+                                    Type
+                                </th>
+
+                                <th class="border p-2 text-right">
+                                    Mg Unit
+                                </th>
+
+                                <th class="border p-2 text-right">
+                                    Total Kg
+                                </th>
+
+                                <th class="border p-2 text-right">
+                                    Price / Kg
+                                </th>
+
+                                <th class="border p-2 text-right">
+                                    Total Price
+                                </th>
+
+                                <th class="border p-2 text-right">
+                                    Weight %
+                                </th>
+
+                                <th class="border p-2"></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr
+                                v-for="(material, index) in state.materials"
+                                :key="index"
+                            >
+                                <td class="border p-2">
+                                    <InputText
+                                        v-model="material.name"
+                                        class="w-full"
+                                    />
+                                </td>
+
+                                <td class="border p-2">
+                                    <InputText
+                                        v-model="material.type"
+                                        class="w-full"
+                                    />
+                                </td>
+
+                                <td class="border p-2">
+                                    <InputNumber
+                                        v-model="material.mgUnit"
+                                        mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                                        class="w-full"
+                                        inputClass="w-full text-right"
+                                    />
+                                </td>
+
+                                <td class="border p-2">
+                                    <InputNumber
+                                        v-model="material.totalKg"
+                                        mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                                        class="w-full"
+                                        inputClass="w-full text-right"
+                                    />
+                                </td>
+
+                                <td class="border p-2">
+                                    <InputNumber
+                                        v-model="material.priceKg"
+                                        mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                                        class="w-full"
+                                        inputClass="w-full text-right"
+                                    />
+                                </td>
+
+                                <td class="border p-2">
+                                    <InputNumber
+                                        v-model="material.totalPrice"
+                                        mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                                        class="w-full"
+                                        inputClass="w-full text-right"
+                                    />
+                                </td>
+
+                                <td class="border p-2">
+                                    <InputNumber
+                                        v-model="material.weightPercent"
+                                        mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                                        class="w-full"
+                                        inputClass="w-full text-right"
+                                    />
+                                </td>
+
+                                <td
+                                    class="border p-2 text-center"
+                                >
+                                    <button
+                                        @click="removeMaterial(index)"
+                                        class="delete-btn"
+                                    >
+                                        ×
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+
+                    </table>
+                </div>
+
+                <div
+                    class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                    <div class="bg-gray-100 rounded p-3">
+                        Total Kg:
+                        {{ Number(totalKg || 0).toFixed(3) }}
+                    </div>
+
+                    <div class="bg-gray-100 rounded p-3">
+                        Total Material Cost:
+                        ${{ Number(totalMaterialCost || 0).toFixed(2) }}
+                    </div>
+                </div>
+
             </section>
 
+            <!-- PHARMA ASSUMPTIONS -->
             <section class="bg-white rounded-2xl shadow p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold">Materials</h2>
-                    <button @click="addMaterial" class="bg-blue-700 text-white px-3 py-2 rounded-lg">Add Material</button>
-                </div>
-
-                <table class="w-full text-sm border-collapse">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            <th class="border p-2 text-left">Name</th>
-                            <th class="border p-2 text-left">Type</th>
-                            <th class="border p-2 text-right">Mg Unit</th>
-                            <th class="border p-2 text-right">Total Kg</th>
-                            <th class="border p-2 text-right">Price / Kg</th>
-                            <th class="border p-2 text-right">Total Price</th>
-                            <th class="border p-2 text-right">Weight %</th>
-                            <th class="border p-2"></th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr v-for="(material, index) in state.materials" :key="index">
-                            <td class="border p-2">
-                                <InputText v-model="material.name" class="w-full" />
-                            </td>
-
-                            <td class="border p-2">
-                                <InputText v-model="material.type" class="w-full" />
-                            </td>
-
-                            <td class="border p-2">
-                                <InputNumber v-model="material.mgUnit" class="w-full" inputClass="w-full text-right" />
-                            </td>
-
-                            <td class="border p-2">
-                                <InputNumber v-model="material.totalKg" class="w-full" inputClass="w-full text-right" />
-                            </td>
-
-                            <td class="border p-2">
-                                <InputNumber v-model="material.priceKg" class="w-full" inputClass="w-full text-right" />
-                            </td>
-
-                            <td class="border p-2">
-                                <InputNumber v-model="material.totalPrice" class="w-full" inputClass="w-full text-right" />
-                            </td>
-
-                            <td class="border p-2">
-                                <InputNumber v-model="material.weightPercent" class="w-full" inputClass="w-full text-right" />
-                            </td>
-
-                            <td class="border p-2 text-center">
-                                <button @click="removeMaterial(index)" class="bg-red-700 text-white px-2 py-1 rounded">X</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-gray-100 rounded p-3">Total Kg: {{ totalKg.toFixed(3) }}</div>
-                    <div class="bg-gray-100 rounded p-3">Total Material Cost: ${{ totalMaterialCost.toFixed(2) }}</div>
-                </div>
-            </section>
-
-            <section class="bg-white rounded-2xl shadow p-6">
-                <h2 class="text-xl font-bold mb-4">Pharma Assumptions</h2>
+                <h2 class="text-xl font-bold mb-4">
+                    Pharma Assumptions
+                </h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+
                     <FloatLabel>
-                        <InputNumber v-model="state.pharmaAssumptions.yield.mean" inputId="yield-mean" class="w-full" inputClass="w-full" />
-                        <label for="yield-mean">Yield Mean</label>
+                        <InputNumber
+                            v-model="state.pharmaAssumptions.yield.mean"
+                            inputId="yield-mean"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label for="yield-mean">
+                            Yield Mean
+                        </label>
                     </FloatLabel>
 
                     <FloatLabel>
-                        <InputNumber v-model="state.pharmaAssumptions.yield.min" inputId="yield-min" class="w-full" inputClass="w-full" />
-                        <label for="yield-min">Yield Min</label>
+                        <InputNumber
+                            v-model="state.pharmaAssumptions.yield.min"
+                            inputId="yield-min"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label for="yield-min">
+                            Yield Min
+                        </label>
                     </FloatLabel>
 
                     <FloatLabel>
-                        <InputNumber v-model="state.pharmaAssumptions.yield.max" inputId="yield-max" class="w-full" inputClass="w-full" />
-                        <label for="yield-max">Yield Max</label>
+                        <InputNumber
+                            v-model="state.pharmaAssumptions.yield.max"
+                            inputId="yield-max"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label for="yield-max">
+                            Yield Max
+                        </label>
                     </FloatLabel>
 
                     <FloatLabel>
-                        <InputNumber v-model="state.pharmaAssumptions.yield.stdDev" inputId="yield-std-dev" class="w-full" inputClass="w-full" />
-                        <label for="yield-std-dev">Std Dev</label>
+                        <InputNumber
+                            v-model="state.pharmaAssumptions.yield.stdDev"
+                            inputId="yield-std-dev"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label for="yield-std-dev">
+                            Std Dev
+                        </label>
                     </FloatLabel>
 
                     <FloatLabel>
-                        <InputNumber v-model="state.pharmaAssumptions.batchFailureRatePercent" inputId="batch-failure-rate-percent" class="w-full" inputClass="w-full" />
-                        <label for="batch-failure-rate-percent">Failure Rate %</label>
+                        <InputNumber
+                            v-model="state.pharmaAssumptions.batchFailureRatePercent"
+                            inputId="batch-failure-rate-percent"
+                            mode="decimal"
+    :minFractionDigits="2"
+    :maxFractionDigits="4"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label for="batch-failure-rate-percent">
+                            Failure Rate %
+                        </label>
                     </FloatLabel>
+
                 </div>
             </section>
 
+            <!-- Packaging Info -->
+            <section class="bg-white rounded-2xl shadow p-6"> 
+                <h2 class="text-xl font-bold mb-4">
+                    Packaging Info
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                    <FloatLabel
+                        v-for="(value, key) in state.packaging"
+                        :key="key"
+                    >
+                        <InputText
+                            v-model="state.packaging[key]"
+                            class="w-full"
+                        />
+
+                        <label :for="`packaging-${key}`">
+                            {{ key }}
+                        </label>
+                    </FloatLabel>
+
+                </div>
+
+            </section>
+
+            <!-- Capsule info -->
+            <section class="bg-white rounded-2xl shadow p-6"> 
+                <h2 class="text-xl font-bold mb-4">
+                    Capsule Info
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                    <FloatLabel
+                        v-for="(value, key) in state.capsule"
+                        :key="key"
+                    >
+                        <InputText        
+                            v-model="state.capsule[key]"
+                            class="w-full"
+                            inputClass="w-full"
+                        />
+
+                        <label :for="`capsule-${key}`">
+                            {{ key }}
+                        </label>
+                    </FloatLabel>
+
+                </div>
+
+            </section>
+
+            <!-- SUPPLEMENT FACTS -->
             <section class="bg-white rounded-2xl shadow p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold">Supplement Facts</h2>
-                    <button @click="addFactRow" class="bg-blue-700 text-white px-3 py-2 rounded-lg">Add Fact</button>
+
+                <div
+                    class="flex justify-between items-center mb-4"
+                >
+                    <h2 class="text-xl font-bold">
+                        Supplement Facts
+                    </h2>
+
+                    <button
+                        @click="addFactRow"
+                        class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-lg transition"
+                    >
+                        Add Fact
+                    </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div
+                    class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"
+                >
+
                     <FloatLabel>
-                        <InputText id="facts-serving-size" v-model="state.facts.servingSize" class="w-full" />
-                        <label for="facts-serving-size">Serving Size</label>
+                        <InputText
+                            id="facts-serving-size"
+                            v-model="state.facts.servingSize"
+                            class="w-full"
+                        />
+
+                        <label for="facts-serving-size">
+                            Serving Size
+                        </label>
                     </FloatLabel>
 
                     <FloatLabel>
-                        <InputText id="facts-servings-per" v-model="state.facts.servingsPer" class="w-full" />
-                        <label for="facts-servings-per">Servings Per</label>
+                        <InputText
+                            id="facts-servings-per"
+                            v-model="state.facts.servingsPer"
+                            class="w-full"
+                        />
+
+                        <label for="facts-servings-per">
+                            Servings Per
+                        </label>
                     </FloatLabel>
 
                     <FloatLabel>
-                        <InputText id="facts-other-ingredients" v-model="state.facts.otherIngredients" class="w-full" />
-                        <label for="facts-other-ingredients">Other Ingredients</label>
+                        <InputText
+                            id="facts-other-ingredients"
+                            v-model="state.facts.otherIngredients"
+                            class="w-full"
+                        />
+
+                        <label for="facts-other-ingredients">
+                            Other Ingredients
+                        </label>
                     </FloatLabel>
+
                 </div>
 
-                <table class="w-full text-sm border-collapse">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            <th class="border p-2 text-left">Name</th>
-                            <th class="border p-2 text-left">Amount</th>
-                            <th class="border p-2 text-left">DV</th>
-                            <th class="border p-2"></th>
-                        </tr>
-                    </thead>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm border-collapse">
 
-                    <tbody>
-                        <tr v-for="(item, index) in state.facts.items" :key="index">
-                            <td class="border p-2">
-                                <InputText v-model="item.name" class="w-full" />
-                            </td>
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border p-2 text-left">
+                                    Name
+                                </th>
 
-                            <td class="border p-2">
-                                <InputText v-model="item.amount" class="w-full" />
-                            </td>
+                                <th class="border p-2 text-left">
+                                    Amount
+                                </th>
 
-                            <td class="border p-2">
-                                <InputText v-model="item.dv" class="w-full" />
-                            </td>
+                                <th class="border p-2 text-left">
+                                    DV
+                                </th>
 
-                            <td class="border p-2 text-center">
-                                <button @click="removeFactRow(index)" class="bg-red-700 text-white px-2 py-1 rounded">X</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <th class="border p-2"></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr
+                                v-for="(item, index) in state.facts.items"
+                                :key="index"
+                            >
+                                <td class="border p-2">
+                                    <InputText
+                                        v-model="item.name"
+                                        class="w-full"
+                                    />
+                                </td>
+
+                                <td class="border p-2">
+                                    <InputText
+                                        v-model="item.amount"
+                                        class="w-full"
+                                    />
+                                </td>
+
+                                <td class="border p-2">
+                                    <InputText
+                                        v-model="item.dv"
+                                        class="w-full"
+                                    />
+                                </td>
+
+                                <td
+                                    class="border p-2 text-center"
+                                >
+                                    <button
+                                        @click="removeFactRow(index)"
+                                        class="delete-btn"
+                                    >
+                                        ×
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+
+                    </table>
+                </div>
+
             </section>
+
         </div>
     </div>
 </template>
 
 <style scoped>
-/* Ensure FloatLabel blocks behave properly */
 :deep(.p-float-label) {
     display: block;
     width: 100%;
-    margin-top: 8px; /* spacing above each field */
-    margin-bottom: 12px; /* spacing below each field */
+    margin-top: 8px;
+    margin-bottom: 12px;
 }
 
-/* Make sure PrimeVue inputs fill container */
 :deep(.p-inputtext),
 :deep(.p-inputnumber),
-:deep(.p-inputnumber-input) {
+:deep(.p-inputnumber-input),
+:deep(.p-select) {
     width: 100%;
 }
 
-/* Improve vertical spacing inside grids */
 .grid {
     row-gap: 18px !important;
 }
 
-/* Slightly lift default label position */
 :deep(.p-float-label label) {
     transform: translateY(-0.5rem);
     transition: all 0.15s ease;
+    text-transform: capitalize;
 }
 
-/* When active, float label higher to avoid overlap */
 :deep(.p-float-label input:focus ~ label),
 :deep(.p-float-label .p-inputwrapper-focus ~ label),
 :deep(.p-float-label input.p-filled ~ label),
@@ -748,7 +1123,6 @@ function removeFactRow(index) {
     transform: translateY(-1.2rem) scale(0.85);
 }
 
-/* Optional: tighten table inputs */
 .table-input {
     width: 100%;
     border: 1px solid transparent;
@@ -758,21 +1132,40 @@ function removeFactRow(index) {
     box-sizing: border-box;
 }
 
-/* Delete button styling (kept same look) */
 .delete-btn {
     border: none;
     background: #fee2e2;
     color: #b91c1c;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 999px;
     font-size: 16px;
     font-weight: 900;
     cursor: pointer;
     line-height: 1;
+    transition: all 0.15s ease;
 }
 
 .delete-btn:hover {
     background: #fecaca;
+    transform: scale(1.05);
+}
+
+table th {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+table td,
+table th {
+    vertical-align: middle;
+}
+
+button {
+    font-weight: 600;
+}
+
+section {
+    transition: all 0.2s ease;
 }
 </style>
